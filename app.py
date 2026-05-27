@@ -18,6 +18,14 @@ import os
 import sys
 import time
 import threading
+
+# Set OPENAI_API_KEY from NIM_API_KEY at startup
+# Required by nemoguardrails which looks for OPENAI_API_KEY internally
+_nim_key = os.getenv("NIM_API_KEY", "")
+if _nim_key and not os.getenv("OPENAI_API_KEY"):
+    os.environ["OPENAI_API_KEY"] = _nim_key
+if not os.getenv("OPENAI_API_BASE"):
+    os.environ["OPENAI_API_BASE"] = os.getenv("NIM_BASE_URL", "https://integrate.api.nvidia.com/v1")
 import logging
 from datetime import datetime, timezone, timedelta
 

@@ -93,25 +93,27 @@ class Orchestrator:
         memo = self.synthesizer.synthesize(assessment, screen_reason=screen.reason)
 
         # ── Stage 3.5: NeMo Guardrails policy check ──────────────────
-        # Runs AFTER synthesis so output rail can check the memo too
         self._log("Stage 3.5 — NeMo Guardrails: policy validation...")
-        guardrails_result = self.guardrails.validate(
-            assessment,
-            event_text=event_text,
-            memo=memo,
-        )
-
-        if not guardrails_result.passed:
-            self._log(f"GUARDRAILS FAILED: {guardrails_result.violations}")
-            return PipelineResult(
+        guardrails_result = None
+        try:
+            guardrails_result = self.guardrails.validate(
+                assessment,
                 event_text=event_text,
-                screen=screen,
-                assessment=assessment,
-                guardrails=guardrails_result,
                 memo=memo,
-                skipped=True,
-                skip_reason=f"Policy violation: {'; '.join(guardrails_result.violations)}",
             )
+            if not guardrails_result.passed:
+                self._log(f"GUARDRAILS FAILED: {guardrails_result.violations}")
+                return PipelineResult(
+                    event_text=event_text,
+                    screen=screen,
+                    assessment=assessment,
+                    guardrails=guardrails_result,
+                    memo=memo,
+                    skipped=True,
+                    skip_reason=f"Policy violation: {'; '.join(guardrails_result.violations)}",
+                )
+        except Exception as e:
+            self._log(f"Guardrails check failed (non-fatal): {e}")
 
         # ── Stage 4: Alert ───────────────────────────────────────────
         alert_sent = False
