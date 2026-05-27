@@ -5,4 +5,10 @@ requests>=2.31.0           # HTTP (NewsAPI, Telegram)
 pydantic>=2.0.0            # Typed schema for RiskAssessment
 pydantic-settings>=2.0.0   # Settings from env vars
 rich>=13.0.0               # CLI formatting / pretty output
-nemoguardrails>=0.10.0    # NeMo Guardrails policy layer (NemoClaw bonus ⭐)
+nemoguardrails>=0.10.0     # NeMo Guardrails policy layer (NemoClaw bonus ⭐)
+
+# Dashboard + cloud
+fastapi>=0.111.0           # Web dashboard backend
+uvicorn>=0.29.0            # ASGI server
+jinja2>=3.1.0              # HTML templating
+firebase-admin>=6.5.0      # Firestore cloud database

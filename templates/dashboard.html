@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GeoRisk Oracle — Live Dashboard</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    body { background: #0d1117; color: #e6edf3; font-family: 'Segoe UI', sans-serif; }
+    .navbar { background: #161b22 !important; border-bottom: 1px solid #30363d; }
+    .card { background: #161b22; border: 1px solid #30363d; border-radius: 8px; }
+    .card-header { background: #1c2128; border-bottom: 1px solid #30363d; font-weight: 600; }
+    .badge-critical { background: #da3633; }
+    .badge-high     { background: #d29922; }
+    .badge-medium   { background: #1f6feb; }
+    .badge-low      { background: #238636; }
+    .status-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+    .status-on  { background: #3fb950; box-shadow: 0 0 8px #3fb950; }
+    .status-off { background: #da3633; }
+    .stat-number { font-size: 2rem; font-weight: 700; color: #58a6ff; }
+    .event-row:hover { background: #1c2128; cursor: pointer; }
+    .event-row { border-bottom: 1px solid #21262d; transition: background 0.15s; }
+    .score-bar { height: 4px; border-radius: 2px; background: #30363d; }
+    .score-fill { height: 100%; border-radius: 2px; }
+    .insight-box { background: #0d1117; border: 1px solid #30363d; border-radius: 6px;
+                   padding: 1rem; white-space: pre-wrap; font-size: 0.88rem; line-height: 1.6; }
+    .filter-btn.active { background: #1f6feb; border-color: #1f6feb; }
+    .model-badge { background: #1c2128; border: 1px solid #30363d; border-radius: 4px;
+                   padding: 2px 8px; font-size: 0.75rem; font-family: monospace; }
+    #riskChart { max-height: 200px; }
+    .alert-row { border-left: 3px solid #da3633; padding: 0.5rem 1rem;
+                 margin-bottom: 0.5rem; background: #1c2128; border-radius: 0 4px 4px 0; }
+    a { color: #58a6ff; }
+    ::-webkit-scrollbar { width: 6px; } ::-webkit-scrollbar-track { background: #0d1117; }
+    ::-webkit-scrollbar-thumb { background: #30363d; border-radius: 3px; }
+  </style>
+</head>
+<body>
+
+<!-- Navbar -->
+<nav class="navbar navbar-dark px-4 py-2">
+  <span class="navbar-brand fw-bold">🌐 GeoRisk Oracle</span>
+  <div class="d-flex align-items-center gap-3">
+    <span class="model-badge">{{ nim_model if nim_model else 'Nemotron' }}</span>
+    <span class="model-badge">{{ llama_model if llama_model else 'Llama 3.3 70B' }}</span>
+    <span id="refreshTimer" class="text-muted" style="font-size:0.8rem">Refreshing...</span>
+  </div>
+</nav>
+
+<div class="container-fluid px-4 py-3">
+
+  <!-- Status Bar -->
+  <div class="card mb-3">
+    <div class="card-body py-2">
+      <div class="row align-items-center g-3">
+        <div class="col-auto">
+          <span class="status-dot status-on me-1" id="statusDot"></span>
+          <span id="statusText" class="fw-semibold">Monitoring Active</span>
+        </div>
+        <div class="col-auto text-muted" style="font-size:0.85rem">
+          Last scan: <span id="lastScan">—</span>
+        </div>
+        <div class="col-auto text-muted" style="font-size:0.85rem">
+          Next scan: <span id="nextScan">—</span>
+        </div>
+        <div class="col-auto text-muted" style="font-size:0.85rem">
+          Interval: <span id="interval">—</span> min
+        </div>
+        <div class="col-auto ms-auto">
+          <button class="btn btn-sm btn-outline-secondary me-2" onclick="triggerScan()">⚡ Scan Now</button>
+          <button class="btn btn-sm btn-outline-secondary" onclick="triggerInsight()">🧠 Generate Insight</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Stats Row -->
+  <div class="row g-3 mb-3">
+    <div class="col-6 col-md-3">
+      <div class="card text-center p-3">
+        <div class="stat-number" id="statEventsToday">—</div>
+        <div class="text-muted small">Events Today</div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="card text-center p-3">
+        <div class="stat-number" id="statEventsWeek">—</div>
+        <div class="text-muted small">Events This Week</div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="card text-center p-3">
+        <div class="stat-number" id="statAlerts">—</div>
+        <div class="text-muted small">Alerts Sent (7d)</div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="card text-center p-3">
+        <div class="stat-number" id="statScans">—</div>
+        <div class="text-muted small">Scans Today</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Content -->
+  <div class="row g-3">
+
+    <!-- Left: Events Feed -->
+    <div class="col-lg-7">
+      <div class="card h-100">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <span>📡 Event Feed</span>
+          <div class="btn-group btn-group-sm" role="group">
+            <button class="btn btn-outline-secondary filter-btn active" data-days="1" onclick="setDays(1, this)">Today</button>
+            <button class="btn btn-outline-secondary filter-btn" data-days="7" onclick="setDays(7, this)">7 Days</button>
+            <button class="btn btn-outline-secondary filter-btn" data-days="30" onclick="setDays(30, this)">30 Days</button>
+          </div>
+        </div>
+        <div class="card-body p-0" style="max-height: 520px; overflow-y: auto;">
+          <div id="eventsList">
+            <div class="text-center text-muted py-5">Loading events...</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right: Chart + Alerts -->
+    <div class="col-lg-5">
+
+      <!-- Risk Score Timeline -->
+      <div class="card mb-3">
+        <div class="card-header">📈 Risk Score Timeline</div>
+        <div class="card-body">
+          <canvas id="riskChart"></canvas>
+        </div>
+      </div>
+
+      <!-- Alerts Log -->
+      <div class="card">
+        <div class="card-header">🔔 Alerts Sent (7d)</div>
+        <div class="card-body p-2" style="max-height: 200px; overflow-y: auto;">
+          <div id="alertsList">
+            <div class="text-center text-muted py-3 small">Loading alerts...</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /row -->
+
+  <!-- Insights Row -->
+  <div class="row g-3 mt-1">
+    <div class="col-md-6">
+      <div class="card">
+        <div class="card-header">🧠 Pattern Analysis <span class="text-muted fw-normal small ms-2">Powered by Nemotron</span></div>
+        <div class="card-body p-2">
+          <div id="patternInsight" class="insight-box">Loading...</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-6">
+      <div class="card">
+        <div class="card-header">🔭 Forward Outlook <span class="text-muted fw-normal small ms-2">Next 2 Weeks</span></div>
+        <div class="card-body p-2">
+          <div id="outlookInsight" class="insight-box">Loading...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /container -->
+
+<script>
+let currentDays = 1;
+let riskChart = null;
+let refreshCountdown = 60;
+
+const URGENCY_CLASS = { CRITICAL: 'badge-critical', HIGH: 'badge-high', MEDIUM: 'badge-medium', LOW: 'badge-low' };
+const URGENCY_EMOJI = { CRITICAL: '🔴', HIGH: '🟠', MEDIUM: '🟡', LOW: '🟢' };
+
+function fmtTime(iso) {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  return d.toLocaleString('en-GB', { month: 'short', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+}
+
+function fmtRelative(iso) {
+  if (!iso) return '—';
+  const diff = Math.round((Date.now() - new Date(iso)) / 60000);
+  if (diff < 1) return 'just now';
+  if (diff < 60) return `${diff}m ago`;
+  return `${Math.round(diff/60)}h ago`;
+}
+
+function scoreColor(score) {
+  if (score >= 80) return '#da3633';
+  if (score >= 60) return '#d29922';
+  if (score >= 40) return '#1f6feb';
+  return '#238636';
+}
+
+// ── Status ──
+async function loadStatus() {
+  try {
+    const r = await fetch('/api/status');
+    const d = await r.json();
+    const dot = document.getElementById('statusDot');
+    const txt = document.getElementById('statusText');
+    if (d.running) {
+      dot.className = 'status-dot status-on me-1';
+      txt.textContent = 'Monitoring Active';
+    } else {
+      dot.className = 'status-dot status-off me-1';
+      txt.textContent = 'Monitor Offline';
+    }
+    document.getElementById('lastScan').textContent = fmtRelative(d.last_scan_at);
+    document.getElementById('nextScan').textContent = fmtRelative(d.next_scan_at);
+    document.getElementById('interval').textContent = d.interval_minutes || '—';
+  } catch(e) { console.error('status error', e); }
+}
+
+// ── Stats ──
+async function loadStats() {
+  try {
+    const [e1, e7, al, sc] = await Promise.all([
+      fetch('/api/events?days=1').then(r=>r.json()),
+      fetch('/api/events?days=7').then(r=>r.json()),
+      fetch('/api/alerts?days=7').then(r=>r.json()),
+      fetch('/api/scans?days=1').then(r=>r.json()),
+    ]);
+    document.getElementById('statEventsToday').textContent = e1.count ?? '—';
+    document.getElementById('statEventsWeek').textContent = e7.count ?? '—';
+    document.getElementById('statAlerts').textContent = al.count ?? '—';
+    document.getElementById('statScans').textContent = sc.scans?.length ?? '—';
+  } catch(e) { console.error('stats error', e); }
+}
+
+// ── Events ──
+async function loadEvents() {
+  try {
+    const r = await fetch(`/api/events?days=${currentDays}&limit=50`);
+    const d = await r.json();
+    const el = document.getElementById('eventsList');
+    if (!d.events || !d.events.length) {
+      el.innerHTML = '<div class="text-center text-muted py-5 small">No events in this period.</div>';
+      return;
+    }
+    el.innerHTML = d.events.map(e => `
+      <div class="event-row px-3 py-2">
+        <div class="d-flex justify-content-between align-items-start">
+          <div style="flex:1;min-width:0;">
+            <div class="fw-semibold text-truncate" style="font-size:0.9rem">${e.event_summary || e.event_text?.slice(0,80) || '—'}</div>
+            <div class="text-muted mt-1" style="font-size:0.75rem">
+              📰 ${e.source || '—'} &nbsp;·&nbsp; ⏱ ${fmtTime(e.scanned_at)}
+              ${e.affected_sectors?.length ? '&nbsp;·&nbsp; ' + e.affected_sectors.slice(0,3).join(', ') : ''}
+            </div>
+            <div class="score-bar mt-1">
+              <div class="score-fill" style="width:${e.risk_score||0}%;background:${scoreColor(e.risk_score||0)}"></div>
+            </div>
+          </div>
+          <div class="ms-2 text-end flex-shrink-0">
+            <span class="badge ${URGENCY_CLASS[e.urgency]||'bg-secondary'} mb-1">${URGENCY_EMOJI[e.urgency]||''} ${e.urgency||'?'}</span>
+            <div class="fw-bold" style="font-size:1.1rem;color:${scoreColor(e.risk_score||0)}">${e.risk_score??'—'}</div>
+          </div>
+        </div>
+      </div>
+    `).join('');
+
+    updateChart(d.events);
+  } catch(e) {
+    document.getElementById('eventsList').innerHTML = '<div class="text-center text-danger py-5 small">Error loading events.</div>';
+  }
+}
+
+// ── Chart ──
+function updateChart(events) {
+  const sorted = [...events].reverse();
+  const labels = sorted.map(e => fmtTime(e.scanned_at));
+  const scores = sorted.map(e => e.risk_score || 0);
+  const colors = scores.map(s => scoreColor(s));
+
+  if (riskChart) riskChart.destroy();
+  const ctx = document.getElementById('riskChart').getContext('2d');
+  riskChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [{
+        label: 'Risk Score',
+        data: scores,
+        borderColor: '#58a6ff',
+        backgroundColor: 'rgba(88,166,255,0.1)',
+        pointBackgroundColor: colors,
+        pointRadius: 4,
+        tension: 0.3,
+        fill: true,
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { display: false },
+        y: { min: 0, max: 100, ticks: { color: '#8b949e' }, grid: { color: '#21262d' } }
+      }
+    }
+  });
+}
+
+// ── Alerts ──
+async function loadAlerts() {
+  try {
+    const r = await fetch('/api/alerts?days=7');
+    const d = await r.json();
+    const el = document.getElementById('alertsList');
+    if (!d.alerts?.length) {
+      el.innerHTML = '<div class="text-muted text-center small py-2">No alerts in past 7 days.</div>';
+      return;
+    }
+    el.innerHTML = d.alerts.map(a => `
+      <div class="alert-row">
+        <div class="d-flex justify-content-between">
+          <span style="font-size:0.82rem">${a.event_summary?.slice(0,60)||'—'}...</span>
+          <span class="fw-bold ms-2" style="color:${scoreColor(a.risk_score||0)};white-space:nowrap">${a.risk_score}/100</span>
+        </div>
+        <div class="text-muted" style="font-size:0.72rem">${fmtTime(a.sent_at)} · ${a.telegram_sent?'✅ Telegram sent':'⚠️ Not sent'}</div>
+      </div>
+    `).join('');
+  } catch(e) { console.error('alerts error', e); }
+}
+
+// ── Insights ──
+async function loadInsights() {
+  try {
+    const r = await fetch('/api/insights?period=weekly');
+    const d = await r.json();
+    const content = d.content || 'No insights generated yet. Click "Generate Insight" to analyze recent events.';
+
+    // Split pattern analysis and outlook
+    const patternMatch = content.match(/## Pattern Analysis\n([\s\S]*?)(?=## Forward Outlook|## Key Sectors|$)/);
+    const outlookMatch = content.match(/## Forward Outlook[\s\S]*?\n([\s\S]*?)(?=## Key Sectors|## Recommended|$)/);
+
+    document.getElementById('patternInsight').textContent =
+      patternMatch ? patternMatch[1].trim() : content.slice(0, Math.floor(content.length/2));
+    document.getElementById('outlookInsight').textContent =
+      outlookMatch ? outlookMatch[1].trim() : content.slice(Math.floor(content.length/2));
+  } catch(e) {
+    document.getElementById('patternInsight').textContent = 'Error loading insights.';
+    document.getElementById('outlookInsight').textContent = '';
+  }
+}
+
+// ── Controls ──
+function setDays(days, btn) {
+  currentDays = days;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  loadEvents();
+}
+
+async function triggerScan() {
+  try {
+    await fetch('/api/scan', { method: 'POST' });
+    alert('Scan triggered — results will appear in ~2 minutes.');
+  } catch(e) { alert('Error triggering scan.'); }
+}
+
+async function triggerInsight() {
+  try {
+    await fetch('/api/insight', { method: 'POST' });
+    setTimeout(loadInsights, 15000);
+    alert('Insight generation triggered — reload in ~15 seconds.');
+  } catch(e) { alert('Error triggering insight.'); }
+}
+
+// ── Refresh Loop ──
+function updateCountdown() {
+  refreshCountdown--;
+  document.getElementById('refreshTimer').textContent = `Refreshing in ${refreshCountdown}s`;
+  if (refreshCountdown <= 0) {
+    refreshCountdown = 60;
+    loadAll();
+  }
+}
+
+async function loadAll() {
+  await Promise.all([loadStatus(), loadStats(), loadEvents(), loadAlerts(), loadInsights()]);
+}
+
+// Init
+loadAll();
+setInterval(updateCountdown, 1000);
+</script>
+</body>
+</html>
