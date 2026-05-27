@@ -1,9 +1,9 @@
-# NeMo Guardrails — GeoRisk Oracle Policy Configuration
-# Secures Nemotron outputs with policy-based guardrails (NemoClaw bonus ⭐)
+# NeMo Guardrails — GeoRisk Oracle
+# Uses Nemotron via NIM (OpenAI-compatible) as the guardrails LLM
 
 models:
   - type: main
-    engine: nim
+    engine: openai
     model: nvidia/llama-3.3-nemotron-super-49b-v1
     parameters:
       base_url: "https://integrate.api.nvidia.com/v1"
@@ -11,15 +11,14 @@ models:
 instructions:
   - type: general
     content: |
-      You are a guardrails validator for GeoRisk Oracle, a geopolitical risk analysis agent.
-      Your role is to ensure all outputs are accurate, on-topic, and safe for investors.
+      You are a guardrails validator for GeoRisk Oracle, a geopolitical risk
+      analysis agent. You ensure all inputs are genuine geopolitical events
+      and all outputs are safe, factual, and appropriate for investors.
 
 rails:
   input:
     flows:
-      - check input relevance
-
+      - check geopolitical relevance
   output:
     flows:
-      - validate risk output
-      - check financial safety
+      - check financial safety disclaimer

@@ -88,9 +88,18 @@ class Orchestrator:
         self._log("Stage 2 — Nemotron: causal chain reasoning...")
         assessment = self.reasoner.analyze(event_text)
 
-        # ── Stage 2.5: NeMo Guardrails policy check ──────────────────
-        self._log("Stage 2.5 — NeMo Guardrails: policy validation...")
-        guardrails_result = self.guardrails.validate(assessment)
+        # ── Stage 3: Nemotron synthesis ──────────────────────────────
+        self._log("Stage 3 — Nemotron: synthesizing investor memo...")
+        memo = self.synthesizer.synthesize(assessment, screen_reason=screen.reason)
+
+        # ── Stage 3.5: NeMo Guardrails policy check ──────────────────
+        # Runs AFTER synthesis so output rail can check the memo too
+        self._log("Stage 3.5 — NeMo Guardrails: policy validation...")
+        guardrails_result = self.guardrails.validate(
+            assessment,
+            event_text=event_text,
+            memo=memo,
+        )
 
         if not guardrails_result.passed:
             self._log(f"GUARDRAILS FAILED: {guardrails_result.violations}")
@@ -99,13 +108,10 @@ class Orchestrator:
                 screen=screen,
                 assessment=assessment,
                 guardrails=guardrails_result,
+                memo=memo,
                 skipped=True,
                 skip_reason=f"Policy violation: {'; '.join(guardrails_result.violations)}",
             )
-
-        # ── Stage 3: Nemotron synthesis ──────────────────────────────
-        self._log("Stage 3 — Nemotron: synthesizing investor memo...")
-        memo = self.synthesizer.synthesize(assessment, screen_reason=screen.reason)
 
         # ── Stage 4: Alert ───────────────────────────────────────────
         alert_sent = False
