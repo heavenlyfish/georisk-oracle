@@ -18,19 +18,18 @@ import os
 import sys
 import time
 import threading
+import logging
+from datetime import datetime, timezone, timedelta
 
-# Set OPENAI_API_KEY from NIM_API_KEY at startup
-# Required by nemoguardrails which looks for OPENAI_API_KEY internally
+from dotenv import load_dotenv
+load_dotenv()  # loads .env locally; no-op on Railway
+
+# Set OPENAI_API_KEY from NIM_API_KEY (required by nemoguardrails)
 _nim_key = os.getenv("NIM_API_KEY", "")
 if _nim_key and not os.getenv("OPENAI_API_KEY"):
     os.environ["OPENAI_API_KEY"] = _nim_key
 if not os.getenv("OPENAI_API_BASE"):
     os.environ["OPENAI_API_BASE"] = os.getenv("NIM_BASE_URL", "https://integrate.api.nvidia.com/v1")
-import logging
-from datetime import datetime, timezone, timedelta
-
-from dotenv import load_dotenv
-load_dotenv()
 
 logging.basicConfig(
     level=logging.INFO,
@@ -40,6 +39,20 @@ logging.basicConfig(
 log = logging.getLogger("georisk")
 
 WATCH_INTERVAL = int(os.getenv("WATCH_INTERVAL", "30"))  # minutes
+
+def check_env():
+    """Log which required env vars are set/missing."""
+    required = {
+        "NIM_API_KEY": os.getenv("NIM_API_KEY", ""),
+        "OPENAI_API_KEY": os.getenv("OPENAI_API_KEY", ""),
+        "FIREBASE_CREDENTIALS_JSON": os.getenv("FIREBASE_CREDENTIALS_JSON", ""),
+        "TELEGRAM_BOT_TOKEN": os.getenv("TELEGRAM_BOT_TOKEN", ""),
+    }
+    for k, v in required.items():
+        if v:
+            log.info(f"  {k}: SET ({v[:12]}...)")
+        else:
+            log.warning(f"  {k}: MISSING ⚠️")
 
 
 # ── Watch Loop ────────────────────────────────────────────────────────────────
@@ -215,6 +228,8 @@ def main():
     log.info("=" * 50)
     log.info("GeoRisk Oracle starting")
     log.info(f"Watch interval: {WATCH_INTERVAL} minutes")
+    log.info("Environment check:")
+    check_env()
     log.info("=" * 50)
 
     if args.watch_only:
