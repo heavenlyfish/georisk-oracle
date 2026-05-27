@@ -5,22 +5,25 @@ Runs the full GeoRisk Oracle pipeline:
 
   [Input Event]
        ↓
-  [Llama 3.3 70B]  ← screener_agent: fast triage, entity extraction
+  [Llama 3.3 70B]   ← screener_agent: fast triage, entity extraction
        ↓ (if relevant)
-  [Nemotron]       ← reasoning_agent: deep causal chain reasoning
+  [Nemotron 49B]    ← reasoning_agent: deep causal chain reasoning
        ↓
-  [Claude Sonnet]  ← synthesis_agent: investor memo generation
+  [NeMo Guardrails] ← guardrails_agent: policy-based output validation (NemoClaw ⭐)
+       ↓ (if passed)
+  [Nemotron 49B]    ← synthesis_agent: investor memo generation
        ↓
-  [AlertAgent]     ← Telegram push if score >= threshold
+  [AlertAgent]      ← Telegram push if score >= threshold
 """
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Optional
 
 from agents.screener_agent import ScreenerAgent, ScreenerResult
 from agents.reasoning_agent import ReasoningAgent, RiskAssessment
+from agents.guardrails_agent import GuardrailsAgent, GuardrailsResult
 from agents.synthesis_agent import SynthesisAgent
-from agents.alert_agent import AlertAgent, format_alert
+from agents.alert_agent import AlertAgent
 from config.settings import get_settings
 
 
@@ -29,15 +32,16 @@ class PipelineResult:
     event_text: str
     screen: ScreenerResult
     assessment: Optional[RiskAssessment] = None
+    guardrails: Optional[GuardrailsResult] = None
     memo: Optional[str] = None
     alert_sent: bool = False
-    skipped: bool = False       # True if screener filtered it out
+    skipped: bool = False
     skip_reason: str = ""
 
 
 class Orchestrator:
     """
-    Coordinates Llama → Nemotron → Claude pipeline.
+    Coordinates Llama → Nemotron → NeMo Guardrails → Nemotron pipeline.
     """
 
     def __init__(self, verbose: bool = False):
@@ -45,6 +49,7 @@ class Orchestrator:
         self.settings = get_settings()
         self.screener = ScreenerAgent(verbose=verbose)
         self.reasoner = ReasoningAgent(verbose=verbose)
+        self.guardrails = GuardrailsAgent(verbose=verbose)
         self.synthesizer = SynthesisAgent(verbose=verbose)
         self.alerter = AlertAgent()
 
@@ -58,7 +63,7 @@ class Orchestrator:
 
         Args:
             event_text: Natural language event description
-            skip_screen: If True, bypass Llama screener (always run Nemotron)
+            skip_screen: If True, bypass Llama screener
 
         Returns:
             PipelineResult with all intermediate outputs
@@ -83,8 +88,23 @@ class Orchestrator:
         self._log("Stage 2 — Nemotron: causal chain reasoning...")
         assessment = self.reasoner.analyze(event_text)
 
-        # ── Stage 3: Claude synthesis ────────────────────────────────
-        self._log("Stage 3 — Claude Sonnet: synthesizing investor memo...")
+        # ── Stage 2.5: NeMo Guardrails policy check ──────────────────
+        self._log("Stage 2.5 — NeMo Guardrails: policy validation...")
+        guardrails_result = self.guardrails.validate(assessment)
+
+        if not guardrails_result.passed:
+            self._log(f"GUARDRAILS FAILED: {guardrails_result.violations}")
+            return PipelineResult(
+                event_text=event_text,
+                screen=screen,
+                assessment=assessment,
+                guardrails=guardrails_result,
+                skipped=True,
+                skip_reason=f"Policy violation: {'; '.join(guardrails_result.violations)}",
+            )
+
+        # ── Stage 3: Nemotron synthesis ──────────────────────────────
+        self._log("Stage 3 — Nemotron: synthesizing investor memo...")
         memo = self.synthesizer.synthesize(assessment, screen_reason=screen.reason)
 
         # ── Stage 4: Alert ───────────────────────────────────────────
@@ -100,6 +120,7 @@ class Orchestrator:
             event_text=event_text,
             screen=screen,
             assessment=assessment,
+            guardrails=guardrails_result,
             memo=memo,
             alert_sent=alert_sent,
         )

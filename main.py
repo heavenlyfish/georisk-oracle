@@ -98,7 +98,7 @@ def print_pipeline_result(result) -> None:
         border_style="cyan",
     ))
 
-    if result.skipped:
+    if result.skipped and not result.assessment:
         console.print(f"\n[yellow]Event filtered as non-relevant. Pipeline stopped.[/yellow]")
         return
 
@@ -106,6 +106,25 @@ def print_pipeline_result(result) -> None:
     console.print(Rule("[bold blue]Stage 2 — Nemotron: Causal Chain Reasoning[/bold blue]"))
     if result.assessment:
         print_assessment(result.assessment)
+
+    # ── Stage 2.5: NeMo Guardrails ──
+    if result.guardrails:
+        gr = result.guardrails
+        status = "✅ PASSED" if gr.passed else "❌ FAILED"
+        color = "green" if gr.passed else "red"
+        warnings_text = "\n".join(f"  ⚠ {w}" for w in gr.warnings) if gr.warnings else "  None"
+        violations_text = "\n".join(f"  ✗ {v}" for v in gr.violations) if gr.violations else "  None"
+        console.print(Panel(
+            f"[{color}]{status}[/{color}]\n\n"
+            f"Warnings:\n{warnings_text}\n"
+            f"Violations:\n{violations_text}",
+            title="[bold yellow]Stage 2.5 — NeMo Guardrails: Policy Check ⭐[/bold yellow]",
+            border_style="yellow",
+        ))
+
+    if result.skipped and result.assessment:
+        console.print(f"\n[red]Pipeline halted by guardrails: {result.skip_reason}[/red]")
+        return
 
     # ── Stage 3: Nemotron synthesis memo ──
     console.print(Rule("[bold magenta]Stage 3 — Nemotron: Investor Memo Synthesis[/bold magenta]"))
