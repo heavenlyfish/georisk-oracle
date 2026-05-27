@@ -1,0 +1,54 @@
+{
+  "hotspots": [
+    "Taiwan Strait",
+    "Ukraine",
+    "Red Sea",
+    "South China Sea",
+    "Korean Peninsula",
+    "Persian Gulf",
+    "Strait of Hormuz",
+    "Strait of Malacca"
+  ],
+  "sectors": [
+    "semiconductors",
+    "energy",
+    "agriculture",
+    "rare_earth",
+    "shipping",
+    "defense",
+    "automotive",
+    "pharmaceuticals"
+  ],
+  "companies": [
+    {"ticker": "TSM",  "name": "TSMC",            "exposure": ["Taiwan", "semiconductors"]},
+    {"ticker": "ASML", "name": "ASML",             "exposure": ["Netherlands", "semiconductors"]},
+    {"ticker": "INTC", "name": "Intel",            "exposure": ["USA", "semiconductors"]},
+    {"ticker": "NVDA", "name": "NVIDIA",           "exposure": ["USA", "semiconductors", "AI"]},
+    {"ticker": "005930","name": "Samsung",         "exposure": ["South Korea", "semiconductors", "DRAM"]},
+    {"ticker": "XOM",  "name": "ExxonMobil",       "exposure": ["USA", "energy", "oil"]},
+    {"ticker": "BP",   "name": "BP",               "exposure": ["UK", "energy", "LNG"]},
+    {"ticker": "MAERSK","name": "Maersk",          "exposure": ["Denmark", "shipping", "Red Sea"]},
+    {"ticker": "MP",   "name": "MP Materials",     "exposure": ["USA", "rare_earth"]},
+    {"ticker": "LME",  "name": "Albemarle",        "exposure": ["USA", "lithium", "EV"]}
+  ],
+  "commodities": [
+    "crude oil",
+    "LNG",
+    "wheat",
+    "corn",
+    "lithium",
+    "cobalt",
+    "gallium",
+    "germanium",
+    "rare earth elements",
+    "NAND flash",
+    "DRAM",
+    "advanced semiconductors"
+  ],
+  "news_keywords": [
+    "Taiwan strait", "South China Sea", "Ukraine war", "Red Sea attack",
+    "Houthi", "sanction", "export restriction", "supply chain",
+    "semiconductor ban", "rare earth", "energy crisis", "geopolitical",
+    "military exercise", "blockade", "trade war"
+  ]
+}
