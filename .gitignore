@@ -2,6 +2,18 @@
 .env
 *-firebase-adminsdk-*.json
 firebase-credentials.json
+*service-account*.json
+*credentials*.json
+
+# Claude Code session data
+.claude/
+
+# SSH / TLS keys
+*.key
+*.key.pub
+*.pem
+*.p12
+*.pfx
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
