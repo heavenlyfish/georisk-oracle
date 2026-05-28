@@ -7,27 +7,34 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <style>
-    body { background: #0d1117; color: #e6edf3; font-family: 'Segoe UI', sans-serif; }
+    body { background: #0d1117; color: #f0f6fc; font-family: 'Segoe UI', sans-serif; }
     .navbar { background: #161b22 !important; border-bottom: 1px solid #30363d; }
     .card { background: #161b22; border: 1px solid #30363d; border-radius: 8px; }
-    .card-header { background: #1c2128; border-bottom: 1px solid #30363d; font-weight: 600; }
-    .badge-critical { background: #da3633; }
-    .badge-high     { background: #d29922; }
-    .badge-medium   { background: #1f6feb; }
-    .badge-low      { background: #238636; }
+    .card-header { background: #1c2128; border-bottom: 1px solid #30363d; font-weight: 600; color: #f0f6fc; }
+    .badge-critical { background: #da3633; color: #fff; }
+    .badge-high     { background: #d29922; color: #fff; }
+    .badge-medium   { background: #1f6feb; color: #fff; }
+    .badge-low      { background: #238636; color: #fff; }
     .status-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
     .status-on  { background: #3fb950; box-shadow: 0 0 8px #3fb950; }
     .status-off { background: #da3633; }
-    .stat-number { font-size: 2rem; font-weight: 700; color: #58a6ff; }
+    .stat-number { font-size: 2rem; font-weight: 700; color: #79c0ff; }
     .event-row:hover { background: #1c2128; cursor: pointer; }
-    .event-row { border-bottom: 1px solid #21262d; transition: background 0.15s; }
+    .event-row { border-bottom: 1px solid #21262d; transition: background 0.15s; color: #f0f6fc; }
+    .event-row .fw-semibold { color: #f0f6fc !important; }
+    .event-row .text-muted { color: #8b949e !important; }
     .score-bar { height: 4px; border-radius: 2px; background: #30363d; }
     .score-fill { height: 100%; border-radius: 2px; }
     .insight-box { background: #0d1117; border: 1px solid #30363d; border-radius: 6px;
-                   padding: 1rem; white-space: pre-wrap; font-size: 0.88rem; line-height: 1.6; }
-    .filter-btn.active { background: #1f6feb; border-color: #1f6feb; }
+                   padding: 1rem; white-space: pre-wrap; font-size: 0.88rem; line-height: 1.6; color: #cdd9e5; }
+    .filter-btn { color: #cdd9e5 !important; border-color: #30363d !important; }
+    .filter-btn.active { background: #1f6feb !important; border-color: #1f6feb !important; color: #fff !important; }
     .model-badge { background: #1c2128; border: 1px solid #30363d; border-radius: 4px;
-                   padding: 2px 8px; font-size: 0.75rem; font-family: monospace; }
+                   padding: 2px 8px; font-size: 0.75rem; font-family: monospace; color: #cdd9e5; }
+    .text-muted { color: #8b949e !important; }
+    p, span, div, td, th { color: inherit; }
+    .card-body { color: #f0f6fc; }
+    .alert-row { color: #f0f6fc; }
     #riskChart { max-height: 200px; }
     .alert-row { border-left: 3px solid #da3633; padding: 0.5rem 1rem;
                  margin-bottom: 0.5rem; background: #1c2128; border-radius: 0 4px 4px 0; }
