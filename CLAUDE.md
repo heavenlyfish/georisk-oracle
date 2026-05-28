@@ -8,7 +8,7 @@ Powered by NVIDIA Nemotron via NIM API.
 ## Hackathon
 - **Event**: NVIDIA Build-a-Claw Agent Challenge
 - **Submitted**: 2026-05-28 ~11:45 AM GMT+8 ✅
-- **Team**: 小魚兒 — 杜孟憲 (Marvin), 蕭清懿, 黃暐庭
+- **Team**: 小魚兒
 - **Result**: Announced 2026-05-29
 
 ## Current Architecture (as submitted)
