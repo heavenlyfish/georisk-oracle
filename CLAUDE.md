@@ -194,8 +194,8 @@ Currently our pipeline is a hardcoded watch loop. The proper version has OpenCla
 - Blocks: nvapi- keys, sk-ant- keys, private key blocks, Firebase credentials, Telegram tokens
 - Install after cloning: `bash scripts/install-hooks.sh`
 
-**Feature 4: SSH key moved to ~/.ssh/**
-- `ssh-key-2026-05-27.key` → `~/.ssh/georisk-oracle.key` (chmod 600)
+**Feature 4: SSH key secured**
+- Oracle Cloud SSH key stored locally in `~/.ssh/` (never in repo)
 - Use: `ssh -i ~/.ssh/georisk-oracle.key opc@<oracle-instance-ip>`
 
 **Feature 5: Personal notes gitignored**
