@@ -1,3 +1,8 @@
+# Personal notes — local only, not for public repo
+ROADMAP.md
+NOTES.md
+TODO.md
+
 # Secrets — never commit
 .env
 *-firebase-adminsdk-*.json
