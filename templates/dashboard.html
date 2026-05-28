@@ -288,15 +288,23 @@ async function loadEvents() {
       el.innerHTML = '<div class="text-center text-muted py-5 small">No events in this period.</div>';
       return;
     }
-    el.innerHTML = d.events.map(e => `
+    el.innerHTML = d.events.map(e => {
+      // Supply chain breakdown pills
+      const scBreakdown = (e.supply_chain_breakdown || []).map(sc => {
+        const sevColor = { CRITICAL:'#da3633', HIGH:'#d29922', MEDIUM:'#1f6feb', LOW:'#238636' }[sc.severity] || '#8b949e';
+        return `<span style="display:inline-block;margin:1px 2px;padding:1px 7px;border-radius:10px;font-size:0.7rem;border:1px solid ${sevColor};color:${sevColor}" title="${sc.detail}">${sc.category}</span>`;
+      }).join('');
+
+      return `
       <div class="event-row px-3 py-2">
         <div class="d-flex justify-content-between align-items-start">
           <div style="flex:1;min-width:0;">
-            <div class="fw-semibold text-truncate" style="font-size:0.9rem">${e.event_summary || e.event_text?.slice(0,80) || '—'}</div>
+            <div class="fw-semibold" style="font-size:0.9rem">${e.event_summary || e.event_text?.slice(0,80) || '—'}</div>
             <div class="text-muted mt-1" style="font-size:0.75rem">
               📰 ${e.source || '—'} &nbsp;·&nbsp; ⏱ ${fmtTime(e.scanned_at)}
-              ${e.affected_sectors?.length ? '&nbsp;·&nbsp; ' + e.affected_sectors.slice(0,3).join(', ') : ''}
+              ${e.time_horizon ? '&nbsp;·&nbsp; ⏳ ' + e.time_horizon : ''}
             </div>
+            ${scBreakdown ? `<div class="mt-1">${scBreakdown}</div>` : ''}
             <div class="score-bar mt-1">
               <div class="score-fill" style="width:${e.risk_score||0}%;background:${scoreColor(e.risk_score||0)}"></div>
             </div>
@@ -306,8 +314,8 @@ async function loadEvents() {
             <div class="fw-bold" style="font-size:1.1rem;color:${scoreColor(e.risk_score||0)}">${e.risk_score??'—'}</div>
           </div>
         </div>
-      </div>
-    `).join('');
+      </div>`;
+    }).join('');
 
     updateChart(d.events);
   } catch(e) {

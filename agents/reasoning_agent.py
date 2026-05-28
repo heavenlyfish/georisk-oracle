@@ -40,6 +40,14 @@ class CausalStep(BaseModel):
     confidence: float = Field(ge=0.0, le=1.0, description="Confidence in this link (0–1)")
 
 
+class SupplyChainImpact(BaseModel):
+    """Detailed impact on a specific supply chain category."""
+    category: str = Field(description="Supply chain category name")
+    severity: str = Field(description="LOW | MEDIUM | HIGH | CRITICAL")
+    detail: str = Field(description="Specific impact description — what breaks, where, how long")
+    affected_items: list[str] = Field(description="Specific materials, components, or products affected")
+
+
 class RiskAssessment(BaseModel):
     """Full structured output from the reasoning agent."""
     event_summary: str = Field(description="One-sentence event summary")
@@ -49,6 +57,10 @@ class RiskAssessment(BaseModel):
     affected_sectors: list[str] = Field(description="Industry sectors at risk")
     affected_companies: list[str] = Field(description="Specific companies or tickers at risk")
     affected_commodities: list[str] = Field(description="Commodities / raw materials disrupted")
+    supply_chain_breakdown: list[SupplyChainImpact] = Field(
+        default_factory=list,
+        description="Detailed breakdown by supply chain category"
+    )
     risk_score: int = Field(ge=0, le=100, description="Overall risk score 0–100")
     urgency: str = Field(description="LOW | MEDIUM | HIGH | CRITICAL")
     hedge_signals: list[str] = Field(description="Actionable early-warning / hedge flags for investors")
@@ -92,10 +104,18 @@ You MUST reason step-by-step through ALL of the following:
    - Affected countries and regions
    - Critical choke points (straits, ports, borders, air corridors)
 
-3. SUPPLY CHAIN TRACE
-   - Which commodities, raw materials, or components are disrupted
-   - Which trade routes / logistics chains are affected
-   - Lead-time and inventory buffer estimates
+3. SUPPLY CHAIN TRACE — break down by specific category:
+   - Rare Earth Elements (gallium, germanium, cobalt, lithium, neodymium, antimony)
+   - Advanced Node Semiconductors (sub-7nm, EUV lithography, leading-edge logic)
+   - Mature Node Semiconductors (legacy/trailing-edge, MCUs, power chips)
+   - Memory (DRAM, NAND Flash, HBM)
+   - Energy (crude oil, LNG, coal, pipeline gas)
+   - Agricultural (wheat, corn, soybeans, fertilizers)
+   - Shipping & Logistics (container, tanker, bulk carrier, air freight)
+   - Defense & Aerospace components
+   - Automotive (chips, batteries, EV materials)
+   - Pharmaceuticals & APIs
+   For each affected category: state severity, specific items disrupted, and estimated impact timeline.
 
 4. SECTOR EXPOSURE
    - Industries with immediate impact (< 2 weeks)
@@ -139,6 +159,14 @@ Return ONLY a single valid JSON object matching this exact schema — no markdow
   "affected_sectors": ["string"],
   "affected_companies": ["string"],
   "affected_commodities": ["string"],
+  "supply_chain_breakdown": [
+    {
+      "category": "Rare Earth Elements | Advanced Node Semiconductors | Mature Node Semiconductors | Memory | Energy | Agricultural | Shipping & Logistics | Defense & Aerospace | Automotive | Pharmaceuticals",
+      "severity": "LOW|MEDIUM|HIGH|CRITICAL",
+      "detail": "specific impact description",
+      "affected_items": ["specific material or component names"]
+    }
+  ],
   "risk_score": 0,
   "urgency": "LOW|MEDIUM|HIGH|CRITICAL",
   "hedge_signals": ["string"],

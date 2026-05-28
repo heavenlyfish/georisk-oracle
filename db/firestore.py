@@ -64,6 +64,7 @@ def save_event(assessment, source: str, event_text: str, memo: str = "") -> str:
         "reasoning": assessment.reasoning,
         "memo": memo,
         "causal_chain": [s.model_dump() for s in assessment.causal_chain],
+        "supply_chain_breakdown": [s.model_dump() for s in assessment.supply_chain_breakdown],
         "scanned_at": datetime.now(timezone.utc),
     }
     ref = db.collection("events").add(doc)
