@@ -115,14 +115,20 @@ Currently our pipeline is a hardcoded watch loop. The proper version has OpenCla
 - **Fix**: Go to Oracle Cloud → Resource Manager → Stacks → georisk-openclaw-stack → Apply (keep retrying until capacity available)
 - Shape: VM.Standard.A1.Flex, 4 OCPU, 24GB RAM, Oracle Linux 9
 
-### Priority 3 — NewsAPI Key
-- Currently falling back to synthetic watchlist events
-- Get free key at newsapi.org → add to `.env` and Railway vars
+### Priority 3 — OpenClaw + Multi-Source Intelligence (see ROADMAP.md locally)
+- Full product vision documented in local ROADMAP.md (gitignored, not on GitHub)
+- Core idea: importance = cross-source confirmation × supply chain hierarchy level
+- Reference cases: Ukraine/Russia → energy → fertilizer; Iran/US → Qatar → urea/氮肥
 
-### Priority 4 — Dashboard not showing real data
-- Railway env vars were set correctly via CLI
-- But Railway redeploy was still pending at submission time
-- Check https://web-production-96213.up.railway.app after weekend
+### Priority 4 — NewsAPI Key ✅ DONE
+- Free key obtained from newsapi.org
+- Added to `.env` and Railway via CLI
+- Live news scanning now active
+
+### Priority 5 — Dashboard showing real data
+- Railway env vars now confirmed set via CLI (all 10 vars)
+- Dashboard live at https://web-production-96213.up.railway.app
+- First real scan cycle should run within 30 min of deploy
 
 ## Known Issues & Fix History
 
@@ -163,3 +169,35 @@ Currently our pipeline is a hardcoded watch loop. The proper version has OpenCla
 - Symptom: "Out of capacity for VM.Standard.A1.Flex in AD-1" on every attempt
 - Tokyo region only has AD-1 — no alternatives
 - Status: Stack saved as `georisk-openclaw-stack`, retry on weekend
+
+**Issue 9: Railway env vars silently not saving via UI**
+- Symptom: All vars showed MISSING even after repeated UI saves
+- Root cause: Railway UI had a silent save bug
+- Fix: Installed Railway CLI → `railway link` → `railway variables set ...` for all 10 vars ✅
+
+## Post-Submission Features Added (2026-05-28)
+
+**Feature 1: Supply chain breakdown by category**
+- `SupplyChainImpact` Pydantic model added to `reasoning_agent.py`
+- Nemotron now outputs per-category breakdown: Rare Earth, Advanced Node Semi,
+  Mature Node Semi, Memory, Energy, Agricultural, Shipping, Defense, Automotive, Pharma
+- Dashboard shows colored severity pills per event (hover for detail)
+- Firestore saves `supply_chain_breakdown` field per event
+
+**Feature 2: Risk score legend on dashboard**
+- Bottom of dashboard explains: 0–29 routine / 30–59 elevated / 60–79 active / 80–100 crisis
+- Includes Nemotron disclaimer
+
+**Feature 3: Pre-commit security hook**
+- `scripts/pre-commit-hook.sh` — scans staged files for API keys, private keys, tokens
+- `scripts/install-hooks.sh` — one-command install for teammates
+- Blocks: nvapi- keys, sk-ant- keys, private key blocks, Firebase credentials, Telegram tokens
+- Install after cloning: `bash scripts/install-hooks.sh`
+
+**Feature 4: SSH key moved to ~/.ssh/**
+- `ssh-key-2026-05-27.key` → `~/.ssh/georisk-oracle.key` (chmod 600)
+- Use: `ssh -i ~/.ssh/georisk-oracle.key opc@<oracle-instance-ip>`
+
+**Feature 5: Personal notes gitignored**
+- `ROADMAP.md`, `NOTES.md`, `TODO.md` added to `.gitignore`
+- Stay local, never pushed to GitHub
